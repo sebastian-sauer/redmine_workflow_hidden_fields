@@ -13,9 +13,14 @@ module RedmineWorkflowHiddenFields
     module InstanceMethods
 
       def available_columns_with_hidden
+	if @permissions_cache == nil
+		logger.debug("Permissions cache is nil")
+		@permissions_cache = Hash.new
+	end
 
-        @available_columns = available_columns_without_hidden
-
+	@available_columns = available_columns_without_hidden
+	logger.debug("Get available columns with hidden for project: " + project.to_s)
+	start = Time.now
         if project == nil
           hidden_fields = []
           all_projects.each { |prj| 
@@ -24,15 +29,24 @@ module RedmineWorkflowHiddenFields
             end
           }
         else
-          hidden_fields = project.completely_hidden_attribute_names
-        end
+	  identifier = project.to_s + "--///--" + User.current.to_s
+	  if @permissions_cache[identifier] != nil
+		logger.debug("Read hidden fields from permissions cache")
+		hidden_fields = @permissions_cache[identifier]
+	  else 
+        	logger.debug("Read new fields and save them to permissions cache later on.")  
+		hidden_fields = project.completely_hidden_attribute_names
+        	@permissions_cache[identifier] = hidden_fields
+	  end
+	end
         hidden_fields.map! {|field| field.sub(/_id$/, '')}  
 
           @available_columns.reject! {|column|
             hidden_fields.include?(column.name.to_s)
           } 
-
-          @available_columns
+	finish = Time.now
+	logger.debug("get available columns with hidden took: " + (finish - start).to_s)
+        @available_columns
       end
 
         def available_filters_with_hidden

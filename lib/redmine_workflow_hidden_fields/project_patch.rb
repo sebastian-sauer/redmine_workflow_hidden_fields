@@ -12,7 +12,9 @@ module RedmineWorkflowHiddenFields
       # Returns list of attributes that are hidden on all statuses of all trackers for +user+ or the current user. 
       def completely_hidden_attribute_names(user=nil) 
         user_real = user || User.current 
-        roles = user_real.admin ? Role.all : user_real.roles_for_project(self) 
+	logger.info("Get completely hidden attributes for user: " + user_real.login.to_s + " and project: " + self.name.to_s)
+	start = Time.now
+	roles = user_real.admin ? Role.all : user_real.roles_for_project(self) 
         return {} if roles.empty?  
         result = {} 
         workflow_permissions = WorkflowPermission.where(:tracker_id => trackers.map(&:id), :old_status_id => IssueStatus.all.map(&:id), :role_id => roles.map(&:id), :rule => 'hidden').all
@@ -33,7 +35,11 @@ module RedmineWorkflowHiddenFields
             end 
           end 
         end
-        result.keys     
+	finish = Time.now
+
+	diff = finish - start
+        logger.info("Getting completely hidden fields took: " + diff.to_s)
+	result.keys     
       end  
 
     end
